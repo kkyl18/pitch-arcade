@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pitch Arcade — Hello Clever</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cobalt:#004CC9;
+    --cyan:#00CCFF;
+    --yellow:#FBE58D;
+    --pink:#E9BADC;
+    --ink:#1C1C1E;
+    --white:#FFFFFF;
+    --soft-grey:#F5F5F7;
+    --text-secondary:#6B6B70;
+    --line:#E2E2E6;
+    --error:#D64545;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--white); color:var(--ink); font-family:'Inter', sans-serif; line-height:1.5;}
+  .shell{max-width:760px; margin:0 auto; padding:32px 22px 70px;}
+  h1,h2,h3{font-family:'Inter', sans-serif; margin:0;}
+  .hidden{display:none !important;}
+
+  .hero{
+    position:relative; overflow:hidden; background:var(--cobalt); color:var(--white);
+    border-radius:16px; padding:34px 30px; text-align:center; margin-bottom:8px;
+  }
+  .hero h1{font-size:clamp(2rem, 6vw, 2.6rem); color:var(--white); position:relative; z-index:2;}
+  .hero p{max-width:460px; margin:12px auto 0; color:#D9E3FF; font-size:1rem; position:relative; z-index:2;}
+
+  .host-toggle{
+    position:fixed; top:16px; right:16px; z-index:5;
+    background:var(--white); border:1px solid var(--line); color:var(--text-secondary);
+    border-radius:8px; padding:7px 14px; font-size:0.82rem; font-weight:600; cursor:pointer;
+  }
+  .host-toggle:hover{border-color:var(--cobalt); color:var(--cobalt);}
+
+  .gate-modal{background:var(--white); color:var(--ink); border-radius:16px; max-width:320px; width:100%; padding:26px 24px;}
+  .gate-modal h2{font-size:1.2rem; margin-bottom:4px;}
+  .gate-modal p{color:var(--text-secondary); font-size:0.88rem; margin:6px 0 16px;}
+  .gate-modal input{
+    width:100%; background:var(--soft-grey); border:1px solid var(--line); color:var(--ink);
+    border-radius:8px; padding:11px 13px; font-size:1rem; margin-bottom:10px;
+  }
+  .gate-modal input:focus{outline:2px solid var(--cobalt); border-color:var(--cobalt);}
+  .gate-error{color:var(--error); font-size:0.85rem; min-height:18px; margin-bottom:4px;}
+  .gate-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:8px;}
+
+  .join-form{max-width:340px; margin:26px auto 0; display:flex; flex-direction:column; gap:12px;}
+  .join-form input{
+    background:var(--soft-grey); border:1px solid var(--line); color:var(--ink);
+    border-radius:8px; padding:12px 14px; font-size:1rem; font-family:'Inter', sans-serif;
+  }
+  .join-form input:focus{outline:2px solid var(--cobalt); border-color:var(--cobalt);}
+  .primary-btn{
+    background:var(--cobalt); color:var(--white); border:none; border-radius:10px;
+    font-family:'Inter', sans-serif; font-weight:700; font-size:1.05rem;
+    padding:13px 26px; cursor:pointer; box-shadow:0 6px 16px rgba(0,76,201,0.25);
+    transition:transform 0.08s ease;
+  }
+  .primary-btn:active{transform:scale(0.98);}
+  .primary-btn:disabled{opacity:0.5; cursor:not-allowed; box-shadow:none;}
+
+  .ticket-wrap{display:flex; justify-content:center; margin:26px 0 22px;}
+  .ticket{
+    background:var(--soft-grey); color:var(--ink); border:2px dashed #C7C7CC;
+    border-radius:14px; padding:22px 26px; width:100%; max-width:480px;
+  }
+  .ticket-row{display:flex; justify-content:space-between; gap:14px; padding:9px 0; border-bottom:1px solid var(--line);}
+  .ticket-row:last-of-type{border-bottom:none;}
+  .ticket-label{font-weight:600; color:var(--text-secondary); flex:0 0 80px; font-size:0.82rem; padding-top:2px;}
+  .ticket-value{font-weight:600; text-align:right; flex:1; transition:opacity 0.2s ease;}
+  .ticket-value.spinning{opacity:0.35;}
+  .round-tag{text-align:center; font-size:0.85rem; color:var(--text-secondary); margin-bottom:6px;}
+
+  .timer-bar{display:flex; align-items:center; justify-content:center; gap:12px; margin:0 0 28px; flex-wrap:wrap;}
+  .timer-display{
+    font-family:'IBM Plex Mono', monospace; font-size:2.2rem; font-weight:600; color:var(--white);
+    background:var(--cobalt); border-radius:10px;
+    padding:6px 20px; min-width:130px; text-align:center; transition:background 0.3s ease;
+  }
+  .timer-display.done{background:var(--error);}
+  .timer-btn{
+    background:var(--white); border:1px solid var(--line); color:var(--ink);
+    border-radius:8px; padding:9px 15px; font-weight:600; cursor:pointer; font-size:0.88rem;
+  }
+  .timer-btn:hover{border-color:var(--cobalt); color:var(--cobalt);}
+
+  .waiting-note{text-align:center; color:var(--text-secondary); font-size:0.95rem; margin:30px 0;}
+
+  .stations{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:26px;}
+  @media (max-width:600px){.stations{grid-template-columns:1fr;}}
+  .station{background:var(--soft-grey); border-radius:12px 12px 0 0; overflow:hidden; border-bottom:3px solid var(--cobalt);}
+  .station-head{padding:11px 16px 4px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:8px; font-family:'Inter', sans-serif;}
+  .station-icon{font-size:1.05rem;}
+  .station-body{padding:6px 16px 18px;}
+  .station-body p{margin:0 0 8px; font-size:0.9rem; color:var(--text-secondary);}
+  .station textarea{
+    width:100%; background:transparent; border:none; border-bottom:1px solid var(--line);
+    color:var(--ink); font-family:'Inter', sans-serif; font-size:0.98rem;
+    padding:6px 2px 10px; resize:vertical; min-height:50px;
+  }
+  .station textarea:focus{outline:none; border-bottom:1px solid var(--cobalt);}
+  .station textarea:disabled{opacity:0.55;}
+
+  .actions{display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin-bottom:10px;}
+  .ghost-btn{
+    background:transparent; border:1px solid var(--ink); color:var(--ink);
+    border-radius:10px; font-weight:600; padding:12px 20px; cursor:pointer;
+  }
+  .ghost-btn:hover{background:var(--soft-grey);}
+  .status-line{text-align:center; font-size:0.9rem; color:var(--cobalt); min-height:20px; margin-top:6px; font-weight:600;}
+  .status-line.error{color:var(--error);}
+
+  .host-panel{background:var(--soft-grey); border-radius:14px; padding:20px 22px; margin-bottom:22px;}
+  .host-panel h3{font-size:1.05rem; margin-bottom:12px; color:var(--ink);}
+  .host-row{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;}
+  .spotlight-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  @media (max-width:600px){.spotlight-grid{grid-template-columns:1fr;}}
+  .spotlight-btn{
+    background:var(--white); border:1px solid var(--line); color:var(--ink);
+    border-radius:8px; padding:10px 12px; font-weight:600; cursor:pointer; font-size:0.9rem; text-align:left;
+  }
+  .spotlight-btn:hover{border-color:var(--cobalt); color:var(--cobalt);}
+  .sub-count{color:var(--text-secondary); font-size:0.9rem; margin-bottom:8px;}
+  .sub-list{max-height:160px; overflow-y:auto; font-size:0.88rem; color:var(--text-secondary);}
+  .sub-list div{padding:4px 0; border-bottom:1px solid var(--line);}
+
+  .spotlight-banner{
+    background:var(--cobalt); color:var(--white); border-radius:12px; padding:16px 20px;
+    margin:0 0 24px; text-align:center;
+  }
+  .spotlight-banner .who{font-family:'Inter', sans-serif; font-weight:700; font-size:1.15rem;}
+  .spotlight-banner .what{margin-top:4px; font-size:1rem; color:#D9E3FF;}
+
+  .overlay{position:fixed; inset:0; background:rgba(28,28,30,0.6); display:none; align-items:center; justify-content:center; padding:20px; z-index:10;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--white); color:var(--ink); border-radius:16px; max-width:480px; width:100%; padding:28px 26px 24px; max-height:86vh; overflow-y:auto;}
+  .modal h2{font-size:1.4rem; margin-bottom:4px;}
+  .modal .scenario-recap{font-size:0.88rem; color:var(--text-secondary); margin-bottom:16px;}
+  .pitch-line{display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--line);}
+  .pitch-line:last-of-type{border-bottom:none;}
+  .pitch-line .icon{font-size:1.1rem; flex:0 0 20px;}
+  .pitch-line .label{font-weight:600; display:block; font-size:0.82rem; margin-bottom:2px; color:var(--text-secondary);}
+  .modal-actions{display:flex; justify-content:flex-end; margin-top:18px;}
+  .close-btn{background:var(--ink); color:var(--white); border:none; border-radius:8px; font-weight:600; padding:10px 18px; cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="hero">
+    <h1>Pitch Arcade</h1>
+    <p id="heroSub">Spin a scenario, build a pitch across branding, product marketing, growth, and social — before the clock runs out.</p>
+  </div>
+  <button class="host-toggle" id="host-toggle-btn" onclick="openHostGate()">Host</button>
+
+  <!-- JOIN FORM -->
+  <div id="joinScreen">
+    <div class="join-form">
+      <input type="text" id="nameInput" placeholder="Your name" maxlength="40">
+      <button class="primary-btn" onclick="joinGame()">Join the round</button>
+    </div>
+  </div>
+
+  <!-- HOST SCREEN -->
+  <div id="hostScreen" class="hidden">
+    <div class="host-panel">
+      <h3>Round controls</h3>
+      <div class="host-row">
+        <button class="primary-btn" onclick="hostSpin()">🎰 Spin a new round</button>
+      </div>
+      <div class="host-row">
+        <button class="timer-btn" onclick="hostAddMinute()">+1 min</button>
+        <button class="timer-btn" id="hostStartPauseBtn" onclick="hostToggleTimer()">Start timer</button>
+        <button class="timer-btn" onclick="hostResetTimer()">Reset timer</button>
+        <button class="timer-btn" id="hostLockBtn" onclick="hostToggleLock()">Lock answers</button>
+      </div>
+    </div>
+
+    <div class="round-tag" id="hostRoundTag">No round started yet</div>
+    <div class="ticket-wrap">
+      <div class="ticket">
+        <div class="ticket-row"><span class="ticket-label">Product</span><span class="ticket-value" id="h-productVal">—</span></div>
+        <div class="ticket-row"><span class="ticket-label">Audience</span><span class="ticket-value" id="h-audienceVal">—</span></div>
+        <div class="ticket-row"><span class="ticket-label">Twist</span><span class="ticket-value" id="h-twistVal">—</span></div>
+      </div>
+    </div>
+    <div class="timer-bar"><div class="timer-display" id="h-timerDisplay">05:00</div></div>
+
+    <div id="h-spotlightBanner" class="spotlight-banner hidden">
+      <div class="who" id="h-spotlightWho"></div>
+      <div class="what" id="h-spotlightWhat"></div>
+    </div>
+
+    <div class="host-panel">
+      <h3>Spotlight — pick a random answer</h3>
+      <div class="spotlight-grid">
+        <button class="spotlight-btn" onclick="hostSpotlight('branding','Design/branding')">🎨 Design/branding</button>
+        <button class="spotlight-btn" onclick="hostSpotlight('product','Product marketing')">📣 Product marketing</button>
+        <button class="spotlight-btn" onclick="hostSpotlight('growth','Growth marketing')">📈 Growth marketing</button>
+        <button class="spotlight-btn" onclick="hostSpotlight('social','Social')">💬 Social</button>
+      </div>
+    </div>
+
+    <div class="host-panel">
+      <h3>Answers coming in</h3>
+      <div class="sub-count" id="h-subCount">0 submitted</div>
+      <div class="sub-list" id="h-subList"></div>
+    </div>
+  </div>
+
+  <!-- PLAYER SCREEN -->
+  <div id="playerScreen" class="hidden">
+    <div id="p-waiting" class="waiting-note">Waiting for the host to spin the first round…</div>
+
+    <div id="p-game" class="hidden">
+      <div class="round-tag" id="p-roundTag"></div>
+      <div class="ticket-wrap">
+        <div class="ticket">
+          <div class="ticket-row"><span class="ticket-label">Product</span><span class="ticket-value" id="p-productVal">—</span></div>
+          <div class="ticket-row"><span class="ticket-label">Audience</span><span class="ticket-value" id="p-audienceVal">—</span></div>
+          <div class="ticket-row"><span class="ticket-label">Twist</span><span class="ticket-value" id="p-twistVal">—</span></div>
+        </div>
+      </div>
+      <div class="timer-bar"><div class="timer-display" id="p-timerDisplay">05:00</div></div>
+
+      <div id="p-spotlightBanner" class="spotlight-banner hidden">
+        <div class="who" id="p-spotlightWho"></div>
+        <div class="what" id="p-spotlightWhat"></div>
+      </div>
+
+      <div class="stations">
+        <div class="station">
+          <div class="station-head"><span class="station-icon">🎨</span>Design/branding</div>
+          <div class="station-body">
+            <p>What's the one feeling you want them to walk away with?</p>
+            <textarea id="answer-branding" placeholder="e.g. calm, confident, unstoppable"></textarea>
+          </div>
+        </div>
+        <div class="station">
+          <div class="station-head"><span class="station-icon">📣</span>Product marketing</div>
+          <div class="station-body">
+            <p>If a customer reads one thing, what should it be? Write it as a benefit, not a feature.</p>
+            <textarea id="answer-product" placeholder='A benefit, not a spec — e.g. "Get your evenings back"'></textarea>
+          </div>
+        </div>
+        <div class="station">
+          <div class="station-head"><span class="station-icon">📈</span>Growth marketing</div>
+          <div class="station-body">
+            <p>What's the one channel or tactic that gets your first 100 customers?</p>
+            <textarea id="answer-growth" placeholder="e.g. TikTok unboxing videos, a referral discount, a launch partnership"></textarea>
+          </div>
+        </div>
+        <div class="station">
+          <div class="station-head"><span class="station-icon">💬</span>Social</div>
+          <div class="station-body">
+            <p>Pick a trend or format you'd piggyback on, then write the line that stops their scroll.</p>
+            <textarea id="answer-social" placeholder='Pick a trend (POV, duet-bait, GRWM) then write the line — e.g. "POV: you finally found the one"'></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary-btn" id="p-submitBtn" onclick="submitAnswers()">Submit my pitch</button>
+      </div>
+      <div class="status-line" id="p-status"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="overlay" id="gateOverlay">
+  <div class="gate-modal">
+    <h2>Host access</h2>
+    <p>Enter the host password to open the round controls.</p>
+    <input type="password" id="gatePassword" placeholder="Password" onkeydown="if(event.key==='Enter') submitHostGate()">
+    <div class="gate-error" id="gateError"></div>
+    <div class="gate-actions">
+      <button class="ghost-btn" onclick="closeHostGate()">Cancel</button>
+      <button class="primary-btn" onclick="submitHostGate()">Enter</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>Your pitch</h2>
+    <p class="scenario-recap" id="recap"></p>
+    <div id="pitchLines"></div>
+    <div class="modal-actions"><button class="close-btn" onclick="closeModal()">Close</button></div>
+  </div>
+</div>
+
+<script>
+  const pillarLabels = {branding:'Design/branding', product:'Product marketing', growth:'Growth marketing', social:'Social'};
+  const pillarIcons = {branding:'🎨', product:'📣', growth:'📈', social:'💬'};
+
+  let role = 'player';
+  let hostKey = null;
+  let myName = '';
+  let myId = 'p-' + Math.random().toString(36).slice(2, 10);
+  let lastSeenRound = 0;
+  let currentState = null;
+  let hasSubmittedThisRound = false;
+
+  // ---------- API helpers ----------
+  async function getState() {
+    try {
+      const res = await fetch('/api/state');
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) { return null; }
+  }
+  async function hostAction(action, extra = {}) {
+    try {
+      const res = await fetch('/api/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-host-key': hostKey },
+        body: JSON.stringify({ action, ...extra })
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Something went wrong.'); return null; }
+      if (data.spotlightError) { alert(data.spotlightError); }
+      return data;
+    } catch (e) { alert('Network error — try again.'); return null; }
+  }
+  async function verifyHostKey(key) {
+    try {
+      const res = await fetch('/api/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-host-key': key },
+        body: JSON.stringify({ action: 'verify' })
+      });
+      return res.ok;
+    } catch (e) { return false; }
+  }
+  async function fetchSubmissions(round) {
+    try {
+      const res = await fetch('/api/submissions?round=' + round);
+      if (!res.ok) return [];
+      return await res.json();
+    } catch (e) { return []; }
+  }
+
+  function formatTime(s) {
+    s = Math.max(0, Math.round(s));
+    const m = Math.floor(s / 60).toString().padStart(2, '0');
+    const sec = (s % 60).toString().padStart(2, '0');
+    return m + ":" + sec;
+  }
+  function computeRemaining(state) {
+    if (!state) return 300;
+    if (state.timerRunning) return Math.max(0, (state.endsAt - Date.now()) / 1000);
+    return state.remaining ?? state.timerDuration ?? 300;
+  }
+
+  // ---------- Host password gate (verified server-side) ----------
+  function openHostGate() {
+    document.getElementById('gatePassword').value = '';
+    document.getElementById('gateError').textContent = '';
+    document.getElementById('gateOverlay').classList.add('show');
+    setTimeout(() => document.getElementById('gatePassword').focus(), 50);
+  }
+  function closeHostGate() {
+    document.getElementById('gateOverlay').classList.remove('show');
+  }
+  async function submitHostGate() {
+    const val = document.getElementById('gatePassword').value;
+    const errEl = document.getElementById('gateError');
+    errEl.textContent = 'Checking…';
+    const ok = await verifyHostKey(val);
+    if (ok) {
+      hostKey = val;
+      closeHostGate();
+      enterHostMode();
+    } else {
+      errEl.textContent = 'Incorrect password.';
+    }
+  }
+  function enterHostMode() {
+    role = 'host';
+    document.getElementById('joinScreen').classList.add('hidden');
+    document.getElementById('playerScreen').classList.add('hidden');
+    document.getElementById('hostScreen').classList.remove('hidden');
+    document.getElementById('host-toggle-btn')?.classList.add('hidden');
+    document.getElementById('heroSub').textContent = "You control the spin, timer, and spotlight — everyone else sees it live.";
+    startHostLoop();
+  }
+  function joinGame() {
+    const val = document.getElementById('nameInput').value.trim();
+    if (!val) { document.getElementById('nameInput').focus(); return; }
+    myName = val;
+    document.getElementById('joinScreen').classList.add('hidden');
+    document.getElementById('playerScreen').classList.remove('hidden');
+    document.getElementById('heroSub').textContent = "Watch the ticket for your scenario, then fill in all four boxes before time's up.";
+    startPlayerLoop();
+  }
+
+  // ---------- Spin visual (generic pulse, scenario picked server-side) ----------
+  function spinAnimation(prodId, audId, twistId, finalState) {
+    [prodId, audId, twistId].forEach(id => document.getElementById(id).classList.add('spinning'));
+    setTimeout(() => {
+      document.getElementById(prodId).textContent = finalState.product;
+      document.getElementById(audId).textContent = finalState.audience;
+      document.getElementById(twistId).textContent = finalState.twist;
+      [prodId, audId, twistId].forEach(id => document.getElementById(id).classList.remove('spinning'));
+    }, 450);
+  }
+
+  // ---------- Player loop ----------
+  function startPlayerLoop() {
+    pollAndRenderPlayer();
+    setInterval(pollAndRenderPlayer, 2500);
+    setInterval(tickPlayerTimer, 1000);
+  }
+  async function pollAndRenderPlayer() {
+    const s = await getState();
+    if (!s) {
+      document.getElementById('p-waiting').classList.remove('hidden');
+      document.getElementById('p-game').classList.add('hidden');
+      return;
+    }
+    currentState = s;
+    document.getElementById('p-waiting').classList.add('hidden');
+    document.getElementById('p-game').classList.remove('hidden');
+
+    if (s.round !== lastSeenRound) {
+      lastSeenRound = s.round;
+      hasSubmittedThisRound = false;
+      spinAnimation('p-productVal', 'p-audienceVal', 'p-twistVal', s);
+      ['answer-branding', 'answer-product', 'answer-growth', 'answer-social'].forEach(id => {
+        document.getElementById(id).value = '';
+        document.getElementById(id).disabled = false;
+      });
+      document.getElementById('p-status').textContent = '';
+      document.getElementById('p-submitBtn').disabled = false;
+      document.getElementById('p-submitBtn').textContent = 'Submit my pitch';
+    } else {
+      document.getElementById('p-productVal').textContent = s.product;
+      document.getElementById('p-audienceVal').textContent = s.audience;
+      document.getElementById('p-twistVal').textContent = s.twist;
+    }
+    document.getElementById('p-roundTag').textContent = 'Round ' + s.round;
+
+    const locked = s.locked || computeRemaining(s) <= 0 || hasSubmittedThisRound;
+    ['answer-branding', 'answer-product', 'answer-growth', 'answer-social'].forEach(id => {
+      document.getElementById(id).disabled = locked;
+    });
+    if (locked) document.getElementById('p-submitBtn').disabled = true;
+
+    if (s.spotlight) {
+      document.getElementById('p-spotlightBanner').classList.remove('hidden');
+      document.getElementById('p-spotlightWho').textContent = pillarIcons[s.spotlight.pillar] + ' ' + pillarLabels[s.spotlight.pillar] + ' spotlight: ' + s.spotlight.name;
+      document.getElementById('p-spotlightWhat').textContent = '"' + s.spotlight.answer + '"';
+    } else {
+      document.getElementById('p-spotlightBanner').classList.add('hidden');
+    }
+  }
+  function tickPlayerTimer() {
+    if (!currentState) return;
+    const remaining = computeRemaining(currentState);
+    const el = document.getElementById('p-timerDisplay');
+    el.textContent = formatTime(remaining);
+    el.classList.toggle('done', remaining <= 0);
+  }
+  async function submitAnswers() {
+    if (!currentState) return;
+    const payload = {
+      round: currentState.round,
+      id: myId,
+      name: myName,
+      branding: document.getElementById('answer-branding').value.trim(),
+      product: document.getElementById('answer-product').value.trim(),
+      growth: document.getElementById('answer-growth').value.trim(),
+      social: document.getElementById('answer-social').value.trim()
+    };
+    const statusEl = document.getElementById('p-status');
+    try {
+      const res = await fetch('/api/submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error();
+      hasSubmittedThisRound = true;
+      ['answer-branding', 'answer-product', 'answer-growth', 'answer-social'].forEach(id => {
+        document.getElementById(id).disabled = true;
+      });
+      document.getElementById('p-submitBtn').disabled = true;
+      document.getElementById('p-submitBtn').textContent = 'Submitted';
+      statusEl.classList.remove('error');
+      statusEl.textContent = "Submitted ✓ — your answers are locked in.";
+      revealMine();
+    } catch (e) {
+      statusEl.classList.add('error');
+      statusEl.textContent = "Couldn't submit — check your connection and try again.";
+    }
+  }
+  function revealMine() {
+    const scenario = currentState || { product: '—', audience: '—', twist: '—' };
+    document.getElementById('recap').textContent =
+      scenario.product + " — for " + scenario.audience.toLowerCase() + ". Twist: " + scenario.twist.toLowerCase() + ".";
+    const vals = {
+      branding: document.getElementById('answer-branding').value.trim() || 'Not filled in yet',
+      product: document.getElementById('answer-product').value.trim() || 'Not filled in yet',
+      growth: document.getElementById('answer-growth').value.trim() || 'Not filled in yet',
+      social: document.getElementById('answer-social').value.trim() || 'Not filled in yet'
+    };
+    const container = document.getElementById('pitchLines');
+    container.innerHTML = '';
+    ['branding', 'product', 'growth', 'social'].forEach(key => {
+      const row = document.createElement('div');
+      row.className = 'pitch-line';
+      row.innerHTML = `<span class="icon">${pillarIcons[key]}</span>
+        <div><span class="label">${pillarLabels[key]}</span><span>${vals[key]}</span></div>`;
+      container.appendChild(row);
+    });
+    document.getElementById('overlay').classList.add('show');
+  }
+  function closeModal() { document.getElementById('overlay').classList.remove('show'); }
+
+  // ---------- Host loop ----------
+  function startHostLoop() {
+    pollAndRenderHost();
+    setInterval(pollAndRenderHost, 2500);
+    setInterval(tickHostTimer, 1000);
+    setInterval(refreshSubmissions, 4000);
+  }
+  async function pollAndRenderHost() {
+    const s = await getState();
+    currentState = s;
+    if (!s) {
+      document.getElementById('hostRoundTag').textContent = 'No round started yet';
+      return;
+    }
+    document.getElementById('hostRoundTag').textContent = 'Round ' + s.round;
+    if (s.round !== lastSeenRound) {
+      lastSeenRound = s.round;
+      spinAnimation('h-productVal', 'h-audienceVal', 'h-twistVal', s);
+    } else {
+      document.getElementById('h-productVal').textContent = s.product;
+      document.getElementById('h-audienceVal').textContent = s.audience;
+      document.getElementById('h-twistVal').textContent = s.twist;
+    }
+    document.getElementById('hostStartPauseBtn').textContent = s.timerRunning ? 'Pause timer' : 'Start timer';
+    document.getElementById('hostLockBtn').textContent = s.locked ? 'Unlock answers' : 'Lock answers';
+
+    if (s.spotlight) {
+      document.getElementById('h-spotlightBanner').classList.remove('hidden');
+      document.getElementById('h-spotlightWho').textContent = pillarIcons[s.spotlight.pillar] + ' ' + pillarLabels[s.spotlight.pillar] + ' spotlight: ' + s.spotlight.name;
+      document.getElementById('h-spotlightWhat').textContent = '"' + s.spotlight.answer + '"';
+    } else {
+      document.getElementById('h-spotlightBanner').classList.add('hidden');
+    }
+  }
+  function tickHostTimer() {
+    if (!currentState) return;
+    const remaining = computeRemaining(currentState);
+    const el = document.getElementById('h-timerDisplay');
+    el.textContent = formatTime(remaining);
+    el.classList.toggle('done', remaining <= 0);
+  }
+  async function refreshSubmissions() {
+    if (!currentState) return;
+    const subs = await fetchSubmissions(currentState.round);
+    document.getElementById('h-subCount').textContent = subs.length + ' submitted';
+    const list = document.getElementById('h-subList');
+    list.innerHTML = '';
+    subs.sort((a, b) => a.submittedAt - b.submittedAt).forEach(sub => {
+      const row = document.createElement('div');
+      row.textContent = '✓ ' + (sub.name || 'Unnamed');
+      list.appendChild(row);
+    });
+  }
+
+  async function hostSpin() { await hostAction('spin'); pollAndRenderHost(); }
+  async function hostToggleTimer() { await hostAction('toggleTimer'); pollAndRenderHost(); }
+  async function hostResetTimer() { await hostAction('resetTimer'); pollAndRenderHost(); }
+  async function hostAddMinute() { await hostAction('addMinute'); pollAndRenderHost(); }
+  async function hostToggleLock() { await hostAction('toggleLock'); pollAndRenderHost(); }
+  async function hostSpotlight(pillar, label) { await hostAction('spotlight', { pillar, label }); pollAndRenderHost(); }
+</script>
+</body>
+</html>
