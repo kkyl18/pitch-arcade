@@ -50,7 +50,6 @@ const productAudienceMap = {
 };
 
 const twists = [
-  "Your headline can only be 8 words long",
   "You have to explain it using a food analogy",
   "Explain it to someone who's never used a smartphone",
   "It's already sold out once, and this is the restock announcement",
@@ -110,6 +109,7 @@ export default async function handler(req, res) {
         remaining: duration,
         locked: false,
         spotlight: null,
+        spotlightHistory: [],
         updatedAt: Date.now()
       };
     } else if (!state) {
