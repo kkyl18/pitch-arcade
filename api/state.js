@@ -1,4 +1,6 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const redis = Redis.fromEnv();
 
 const productAudienceMap = {
   "A pillow that remembers your dreams": [
@@ -79,7 +81,7 @@ function checkHostKey(req, res) {
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    const state = (await kv.get('session-state')) || null;
+    const state = (await redis.get('session-state')) || null;
     return res.status(200).json(state);
   }
 
@@ -92,7 +94,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
-    let state = (await kv.get('session-state')) || null;
+    let state = (await redis.get('session-state')) || null;
 
     if (action === 'spin') {
       const scenario = pickScenario();
@@ -137,10 +139,10 @@ export default async function handler(req, res) {
     } else if (action === 'toggleLock') {
       state = { ...state, locked: !state.locked, updatedAt: Date.now() };
     } else if (action === 'spotlight') {
-      const keys = await kv.keys(`submission:${state.round}:*`);
+      const keys = await redis.keys(`submission:${state.round}:*`);
       let subs = [];
       if (keys.length) {
-        const values = await kv.mget(...keys);
+        const values = await redis.mget(...keys);
         subs = values.filter(Boolean);
       }
       const withAnswer = subs.filter((s) => s[pillar] && s[pillar].trim());
@@ -153,7 +155,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Unknown action.' });
     }
 
-    await kv.set('session-state', state);
+    await redis.set('session-state', state);
     return res.status(200).json(state);
   }
 

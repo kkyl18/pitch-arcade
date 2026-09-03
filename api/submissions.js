@@ -1,13 +1,15 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const redis = Redis.fromEnv();
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const round = req.query.round;
     if (!round) return res.status(400).json({ error: 'round is required' });
-    const keys = await kv.keys(`submission:${round}:*`);
+    const keys = await redis.keys(`submission:${round}:*`);
     let subs = [];
     if (keys.length) {
-      const values = await kv.mget(...keys);
+      const values = await redis.mget(...keys);
       subs = values.filter(Boolean);
     }
     return res.status(200).json(subs);
@@ -24,7 +26,7 @@ export default async function handler(req, res) {
       social: (social || '').slice(0, 500),
       submittedAt: Date.now()
     };
-    await kv.set(`submission:${round}:${id}`, payload);
+    await redis.set(`submission:${round}:${id}`, payload);
     return res.status(200).json({ ok: true });
   }
 
