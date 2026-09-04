@@ -180,6 +180,7 @@
         <button class="timer-btn" id="hostStartPauseBtn" onclick="hostToggleTimer()">Start timer</button>
         <button class="timer-btn" onclick="hostResetTimer()">Reset timer</button>
         <button class="timer-btn" id="hostLockBtn" onclick="hostToggleLock()">Lock answers</button>
+        <button class="timer-btn" onclick="hostResetGame()" style="color:var(--error); border-color:var(--error);">Reset game</button>
       </div>
     </div>
 
@@ -584,6 +585,22 @@
   async function hostResetTimer() { await hostAction('resetTimer'); pollAndRenderHost(); }
   async function hostAddMinute() { await hostAction('addMinute'); pollAndRenderHost(); }
   async function hostToggleLock() { await hostAction('toggleLock'); pollAndRenderHost(); }
+  async function hostResetGame() {
+    const sure = confirm('Reset the game? This clears the current round and deletes every submitted answer so far. This cannot be undone.');
+    if (!sure) return;
+    await hostAction('reset');
+    lastSeenRound = 0;
+    currentState = null;
+    document.getElementById('hostRoundTag').textContent = 'No round started yet';
+    document.getElementById('h-productVal').textContent = '—';
+    document.getElementById('h-audienceVal').textContent = '—';
+    document.getElementById('h-twistVal').textContent = '—';
+    document.getElementById('h-timerDisplay').textContent = '05:00';
+    document.getElementById('h-spotlightBanner').classList.add('hidden');
+    document.getElementById('h-subCount').textContent = '0 submitted';
+    document.getElementById('h-subList').innerHTML = '';
+    pollAndRenderHost();
+  }
   async function hostSpotlight(pillar, label) { await hostAction('spotlight', { pillar, label }); pollAndRenderHost(); }
 </script>
 </body>

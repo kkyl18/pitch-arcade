@@ -93,6 +93,13 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    if (action === 'reset') {
+      await redis.del('session-state');
+      const subKeys = await redis.keys('submission:*');
+      if (subKeys.length) await redis.del(...subKeys);
+      return res.status(200).json({ ok: true });
+    }
+
     let state = (await redis.get('session-state')) || null;
 
     if (action === 'spin') {
